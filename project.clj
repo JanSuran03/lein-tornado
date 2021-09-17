@@ -1,6 +1,6 @@
 (defproject org.clojars.jansuran03/lein-tornado "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+  :description "A Clojure plugin for automatic compilation of Tornado stylesheets."
+  :url "https://github.com/JanSuran03/lein-tornado"
   :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
             :url  "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[ns-tracker "0.4.0"]

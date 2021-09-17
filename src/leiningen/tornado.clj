@@ -18,7 +18,7 @@
   (let [all-builds (all-builds project)]
     (for [build-id build-ids]
       (if-let [build (some (fn [{:keys [id] :as build}]
-                             (when (= build-id id)
+                             (when (= (name build-id) (name id))
                                build)) all-builds)]
         build
         (throw (Exception. (str "Unknown build id: " build-id)))))))
@@ -62,7 +62,6 @@
   [{:keys [tornado-source-paths]} builds watch?]
   (let [all-stylesheet-namespaces (mapv #(-> % :stylesheet symbol namespace) builds) ;;initial compilation of all stylesheets
         tornado-source-paths (vec tornado-source-paths)]
-    (println all-stylesheet-namespaces)
     `(let [modified-namespaces# (ns-tracker/ns-tracker ~tornado-source-paths)]
        (loop [modified-nss# ~all-stylesheet-namespaces]
          (when (seq modified-nss#)
@@ -96,7 +95,6 @@
         modified-project (assoc project :tornado-source-paths build-paths
                                         :tornado-stylesheets stylesheets)
         required-nss (load-namespaces stylesheets)]
-    (lein/info required-nss)
     (when (seq builds)
       (doseq [build builds] (create-output-dir-if-not-exists build))
       (lein/info "Compiling Tornado...")

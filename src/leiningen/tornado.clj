@@ -119,8 +119,11 @@
                                                 ^:displace [org.clojars.jansuran03/tornado "0.1.4"]
                                                 ^:displace [me.raynes/fs "1.4.6"]]})
 
+; TODO: (tornado auto) compresses the build if pretty-print? is set to false only
+; for the first time, after recompilation not anymore for some reason...
+
 (defn tornado
-  "Somethingggg"
+  "Somethingggg" ; TODO: wtf is this doc
   {:help-arglists '([once] [auto])
    :subtasks      [#'once #'auto]}
   [project command & builds?]

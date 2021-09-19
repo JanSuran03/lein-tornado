@@ -16,12 +16,14 @@
   build map of the build. Otherwise, throws an exception."
   [project build-ids]
   (let [all-builds (all-builds project)]
-    (for [build-id build-ids]
-      (if-let [build (some (fn [{:keys [id] :as build}]
-                             (when (= (name build-id) (name id))
-                               build)) all-builds)]
-        build
-        (throw (Exception. (str "Unknown build id: " build-id)))))))
+    (for [build-id build-ids
+          :let [build (if-let [build (some (fn [{:keys [id] :as build}]
+                                             (when (= (name build-id) (name id))
+                                               build)) all-builds)]
+                        build
+                        (throw (Exception. (str "Unknown build id: " build-id))))]
+          :when build]
+      build)))
 
 (defn- validate-builds
   "For each build, validates id, stylesheet and source paths. Throws an exception if some
@@ -88,7 +90,7 @@
   "Starts the compilation process."
   [project args watch?]
   (let [builds (if (seq args)
-                 (find-builds project args)
+                 (vec (find-builds project args))
                  (all-builds project))
         stylesheets (map :stylesheet builds)
         build-paths (mapcat :source-paths builds)
@@ -110,8 +112,7 @@
   (run-compiler project args false))
 
 (defn- auto
-  "Compiles Tornado stylesheets once and recompiles them whenever they are modified.
-  Args are optional specific builds to be compiled."
+  "Compiles Tornado stylesheets once and recompiles them whenever they are modified. Args are optional specific builds to be compiled."
   [project args]
   (run-compiler project args true))
 
@@ -120,11 +121,14 @@
                                                 ^:displace [me.raynes/fs "1.4.6"]]})
 
 ; TODO: (tornado auto) compresses the build if pretty-print? is set to false only
-; for the first time, after recompilation not anymore for some reason...
+; TODO: for the first time, after recompilation not anymore for some reason...
 
 (defn tornado
-  "Somethingggg" ; TODO: wtf is this doc
-  {:help-arglists '([once] [auto])
+  "A function for evaluation in the terminal:
+  \"lein garden once\" - compiles all stylesheets once
+  \"lein garden auto\" - recompiles all stylesheets to provide hot-code reloading.
+  \"lein garden <once/auto> & builds - compiles only specific builds."
+  {:help-arglists '([once] [once & builds] [auto] [auto & builds])
    :subtasks      [#'once #'auto]}
   [project command & builds?]
   (let [project (project/merge-profiles project [tornado-profile])]

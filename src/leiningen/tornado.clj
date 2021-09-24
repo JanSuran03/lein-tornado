@@ -87,10 +87,16 @@
 
 (defn- run-compiler
   "Starts the compilation process."
-  [project args watch?]
+  [project args compilation-type]
   (let [builds (if (seq args)
-                 (vec (find-builds project args))
+                 (find-builds project args)
                  (all-builds project))
+        builds (if (= compilation-type :release)
+                 (mapv #(update % :compiler assoc :pretty-print? false) builds)
+                 (vec builds))
+        watch? (if (= compilation-type :auto)
+                 true
+                 false)
         stylesheets (map :stylesheet builds)
         build-paths (mapcat :source-paths builds)
         modified-project (assoc project :tornado-source-paths build-paths
@@ -108,15 +114,20 @@
 (defn- once
   "Compiles Tornado stylesheets once. Args are optional specific builds to be compiled."
   [project args]
-  (run-compiler project args false))
+  (run-compiler project args :once))
 
 (defn- auto
   "Compiles Tornado stylesheets once and recompiles them whenever they are modified. Args are optional specific builds to be compiled."
   [project args]
-  (run-compiler project args true))
+  (run-compiler project args :auto))
+
+(defn- release
+  "Compiles Tornado stylesheet and compresses the output CSS. Args are optional specific builds to be compiled."
+  [project args]
+  (run-compiler project args :release))
 
 (def ^:private tornado-profile {:dependencies '[^:displace [ns-tracker "0.4.0"]
-                                                ^:displace [org.clojars.jansuran03/tornado "0.1.4"]
+                                                ^:displace [org.clojars.jansuran03/tornado "0.2.1"]
                                                 ^:displace [me.raynes/fs "1.4.6"]]})
 
 ; TODO: (tornado auto) compresses the build if pretty-print? is set to false only
@@ -124,16 +135,18 @@
 
 (defn tornado
   "A function for evaluation in the terminal:
-  \"lein garden once\" - compiles all stylesheets once
-  \"lein garden auto\" - recompiles all stylesheets to provide hot-code reloading.
-  \"lein garden <once/auto> & builds - compiles only specific builds."
-  {:help-arglists '([once] [once & builds] [auto] [auto & builds])
-   :subtasks      [#'once #'auto]}
+  \"lein tornado once\" - compiles all stylesheets once
+  \"lein tornado auto\" - recompiles all stylesheets to provide hot-code reloading.
+  \"lein tornado release\" - compiles and compresses all stylesheets.
+  \"lein tornado <once/auto/release> & builds - compiles only specific builds."
+  {:help-arglists '([once & builds?] [auto & builds?] [release & builds?])
+   :subtasks      [#'once #'auto #'release]}
   [project command & builds?]
   (let [project (project/merge-profiles project [tornado-profile])]
     (validate-builds project)
     (case command "once" (once project builds?)
                   "auto" (auto project builds?)
+                  "release" (release project builds?)
                   (do (lein/info (when command (str "Unknown command: " command))
                                  (help/subtask-help-for *ns* #'tornado))
                       (lein/abort)))))

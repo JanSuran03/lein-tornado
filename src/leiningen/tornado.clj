@@ -116,7 +116,7 @@
   (run-compiler project args true))
 
 (def ^:private tornado-profile {:dependencies '[^:displace [ns-tracker "0.4.0"]
-                                                ^:displace [org.clojars.jansuran03/tornado "0.1.4"]
+                                                ^:displace [org.clojars.jansuran03/tornado "0.2.0"]
                                                 ^:displace [me.raynes/fs "1.4.6"]]})
 
 ; TODO: (tornado auto) compresses the build if pretty-print? is set to false only

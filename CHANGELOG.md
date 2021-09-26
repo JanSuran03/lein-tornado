@@ -2,7 +2,7 @@
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## 0.1.6
-Added release mode: "lein tornado release" which compiles and compresses all (or given) stylesheets.
+Added release mode: "lein tornado release" which compiles and compresses all (or given) stylesheets. Updated Tornado dependency from 0.2.0 to 0.2.1.
 
 ## 0.1.5
 Updated the version of Tornado library dependency to 0.2.0.

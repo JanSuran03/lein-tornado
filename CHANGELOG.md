@@ -1,6 +1,9 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.1.8
+Updated the version of Tornado dependency from 0.2.3 to 0.2.4.
+
 ## 0.1.7
 Updated the version of Tornado library dependency to 0.2.3.
 

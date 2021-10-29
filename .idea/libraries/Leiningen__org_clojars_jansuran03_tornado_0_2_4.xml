@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="Leiningen: org.clojars.jansuran03/tornado:0.2.4">
-    <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/org/clojars/jansuran03/tornado/0.2.4/tornado-0.2.4.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

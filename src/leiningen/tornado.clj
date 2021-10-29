@@ -127,11 +127,11 @@
   (run-compiler project args :release))
 
 (def ^:private tornado-profile {:dependencies '[^:displace [ns-tracker "0.4.0"]
-                                                ^:displace [org.clojars.jansuran03/tornado "0.2.4"]
+                                                ^:displace [org.clojars.jansuran03/tornado "0.2.5"]
                                                 ^:displace [me.raynes/fs "1.4.6"]]})
 
-; TODO: (tornado auto) compresses the build if pretty-print? is set to false only
-; TODO: for the first time, after recompilation not anymore for some reason...
+; TODO: (tornado auto) compresses the build if pretty-print? is set to false only for the first time, after recompilation not anymore for some reason...
+; TODO: if Lein-tornado has troubles with reading the Tornado source code, instead of giving us a warning, it exits immediately...
 
 (defn tornado
   "A function for evaluation in the terminal:

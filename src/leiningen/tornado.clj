@@ -68,9 +68,7 @@
          (when (seq modified-nss#)
            (try
              (println "Reloading modified namespaces...")
-             (println "--")
              (doseq [ns# modified-nss#]
-               (println "reloading: " ns#)
                (require (symbol ns#) :reload))
              (println "Namespaces reloaded.")
              (doseq [build# ~builds]

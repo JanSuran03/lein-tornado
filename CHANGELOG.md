@@ -1,6 +1,9 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.2.1
+Fixed a bug where the Lein-Tornado process terminated on reader's error because of `(require ... :reload)` not being in the `try` form.
+
 ## 0.2.0
 Updated the version of Tornado dependency from 0.2.4 to 0.2.5.
 

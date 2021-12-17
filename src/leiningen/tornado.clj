@@ -6,7 +6,7 @@
             [leiningen.core.eval :refer [eval-in-project]]
             [leiningen.help :as help]))
 
-(defn error
+(defn- error
   "Pretty prints an exception (no 40 lines of unreadable stacktrace) -
   prints out the error message and calmly aborts the process."
   [& args]
@@ -66,20 +66,23 @@
     `(let [modified-namespaces# (ns-tracker/ns-tracker ~tornado-source-paths)]
        (loop [modified-nss# ~all-stylesheet-namespaces]
          (when (seq modified-nss#)
-           (println "Reloading modified namespaces...")
-           (doseq [ns# modified-nss#]
-             (require (symbol ns#) :reload))
-           (println "Namespaces reloaded.")
-           (try (doseq [build# ~builds]
-                  (let [{stylesheet# :stylesheet
-                         id#         :id
-                         flags#      :compiler} build#]
-                    (println "   Compiling build" (name id#) "...")
-                    (compiler/css flags# stylesheet#)
-                    (println "   Successful.")))
-                (println "All builds were successfully recompiled.")
-                (catch Exception e#
-                  (println "Error: " (.getMessage e#)))))
+           (try
+             (println "Reloading modified namespaces...")
+             (println "--")
+             (doseq [ns# modified-nss#]
+               (println "reloading: " ns#)
+               (require (symbol ns#) :reload))
+             (println "Namespaces reloaded.")
+             (doseq [build# ~builds]
+               (let [{stylesheet# :stylesheet
+                      id#         :id
+                      flags#      :compiler} build#]
+                 (println "   Compiling build" (name id#) "...")
+                 (compiler/css flags# stylesheet#)
+                 (println "   Successful.")))
+             (println "All builds were successfully recompiled.")
+             (catch Exception e#
+               (println "Error: " (.getMessage e#)))))
          (when ~watch? nil
                        (Thread/sleep 500)
                        ;; A funciton to return a set of modified namespaces is called, called every 500 millieconds.

@@ -2,6 +2,7 @@
   (:require [me.raynes.fs :as fs]
             [leiningen.core.main :as lein]
             [clojure.java.io :as io]
+            [clojure.pprint :as pp]
             [leiningen.core.project :as project]
             [leiningen.core.eval :refer [eval-in-project]]
             [leiningen.help :as help]))
@@ -37,7 +38,8 @@
   (doseq [{:keys [id stylesheet source-paths compiler]} (all-builds project)
           :let [{:keys [output-to]} compiler]]
     (cond (not ((some-fn keyword? string?) id)) (error "The build id must be a string or a keyword: " id)
-          (nil? source-paths) (error "No source paths specified for a build: " (name id))
+          (and (nil? source-paths) (nil? (:source-paths project))) (error (str "No source paths specified for a build: " (name id) "."
+                                                                               "Please specify global or build-specific source paths."))
           (nil? stylesheet) (error "No stylesheet specified for a build: " (name id))
           (not (symbol? stylesheet)) (error "Stylesheet value must be a symbol: " stylesheet " in a build: " (name id))
           (nil? output-to) (error "No specified output path (:output-to) for a compiled CSS build: " (name id)))))
@@ -88,13 +90,18 @@
 
 (defn- run-compiler
   "Starts the compilation process."
-  [project args compilation-type]
+  [{{:keys [output-directory source-paths]} :tornado :as project} args compilation-type]
   (let [builds (if (seq args)
                  (find-builds project args)
                  (all-builds project))
-        builds (if (= compilation-type :release)
-                 (mapv #(update % :compiler assoc :pretty-print? false) builds)
-                 (vec builds))
+        _ (pp/pprint (:tornado project))
+        builds (cond->> builds
+                        (= compilation-type :release) (map #(update % :compiler assoc :pretty-print? false))
+                        ;; build outputs can share the same parent folder
+                        output-directory (map (fn [build] (update-in build [:compiler :output-to] #(str output-directory \/ %))))
+                        ;; builds can share common source paths, but source paths for a specific build have a higher precedence
+                        source-paths (map (fn [build] (if (:source-paths build) build (assoc build :source-paths source-paths))))
+                        true vec)
         watch? (if (= compilation-type :auto)
                  true
                  false)
@@ -132,7 +139,6 @@
                                                 ^:displace [me.raynes/fs "1.4.6"]]})
 
 ; TODO: (tornado auto) compresses the build if pretty-print? is set to false only for the first time, after recompilation not anymore for some reason...
-; TODO: if Lein-tornado has troubles with reading the Tornado source code, instead of giving us a warning, it exits immediately...
 
 (defn tornado
   "A function for evaluation in the terminal:

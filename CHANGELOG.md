@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.2.3
+Added an option for all stylesheets to share a common parent directory (via `:tornado {:output-directory "...", builds {...}, ...}`)
+
+Also added a similar option to allow sharing the same source paths: `:tornado {:source-paths [...], :builds {...}, ...}`.
+Specifying the source paths directly in the build configuration overrides this option for common source paths.
+
 ## 0.2.2
 Removed useless printlines.
 

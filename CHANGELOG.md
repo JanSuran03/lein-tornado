@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.2.4
+Added an option to specify the builds as a hash-map with keys as the build ids instead of vectors.
+
+Also added a keyword `:output-dir` as an alternative to `:output-directory` in top-level Tornado setup.
+
 ## 0.2.3
 Added an option for all stylesheets to share a common parent directory (via `:tornado {:output-directory "...", builds {...}, ...}`)
 

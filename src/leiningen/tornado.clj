@@ -2,7 +2,6 @@
   (:require [me.raynes.fs :as fs]
             [leiningen.core.main :as lein]
             [clojure.java.io :as io]
-            [clojure.pprint :as pp]
             [leiningen.core.project :as project]
             [leiningen.core.eval :refer [eval-in-project]]
             [leiningen.help :as help]))
@@ -14,10 +13,28 @@
   (apply lein/info args)
   (lein/abort))
 
+(defn- validate-builds
+  "For each build, validates id, stylesheet and source paths. Throws an exception if some builds are not valid."
+  [project builds]
+  (doseq [{:keys [id stylesheet source-paths compiler]} builds
+          :let [{:keys [output-to]} compiler]]
+    (cond (not ((some-fn keyword? string?) id)) (error "The build id must be a string or a keyword: " id)
+          (and (nil? source-paths) (nil? (:source-paths project))) (error (str "No source paths specified for a build: " (name id) "."
+                                                                               "Please specify global or build-specific source paths."))
+          (nil? stylesheet) (error "No stylesheet specified for a build: " (name id))
+          (not (symbol? stylesheet)) (error "Stylesheet value must be a symbol: " stylesheet " in a build: " (name id))
+          (nil? output-to) (error "No specified output path (:output-to) for a compiled CSS build: " (name id)))))
+
 (defn- all-builds
   "Returns a sequence of Tornado builds."
   [project]
-  (-> project :tornado :builds))
+  (let [builds (-> project :tornado :builds)
+        builds (cond->> builds
+                        (map? builds)
+                        (map (fn [[build-id build]]
+                               (assoc build :id build-id))))]
+    (validate-builds project builds)
+    builds))
 
 (defn- find-builds
   "For each of the given build ids, if each of the builds exists, returns a complete
@@ -30,19 +47,6 @@
                                build)) all-builds)]
         build
         (error "Unknown build id: " build-id)))))
-
-(defn- validate-builds
-  "For each build, validates id, stylesheet and source paths. Throws an exception if some
-  of the builds are not valid."
-  [project]
-  (doseq [{:keys [id stylesheet source-paths compiler]} (all-builds project)
-          :let [{:keys [output-to]} compiler]]
-    (cond (not ((some-fn keyword? string?) id)) (error "The build id must be a string or a keyword: " id)
-          (and (nil? source-paths) (nil? (:source-paths project))) (error (str "No source paths specified for a build: " (name id) "."
-                                                                               "Please specify global or build-specific source paths."))
-          (nil? stylesheet) (error "No stylesheet specified for a build: " (name id))
-          (not (symbol? stylesheet)) (error "Stylesheet value must be a symbol: " stylesheet " in a build: " (name id))
-          (nil? output-to) (error "No specified output path (:output-to) for a compiled CSS build: " (name id)))))
 
 (defn- load-namespaces [stylesheets]
   `(require ~@(for [stylesheet stylesheets]
@@ -90,11 +94,11 @@
 
 (defn- run-compiler
   "Starts the compilation process."
-  [{{:keys [output-directory source-paths]} :tornado :as project} args compilation-type]
+  [{{:keys [output-dir output-directory source-paths]} :tornado :as project} args compilation-type]
   (let [builds (if (seq args)
                  (find-builds project args)
                  (all-builds project))
-        _ (pp/pprint (:tornado project))
+        output-directory (or output-directory output-dir)
         builds (cond->> builds
                         (= compilation-type :release) (map #(update % :compiler assoc :pretty-print? false))
                         ;; build outputs can share the same parent folder
@@ -150,7 +154,6 @@
    :subtasks      [#'once #'auto #'release]}
   [project command & builds?]
   (let [project (project/merge-profiles project [tornado-profile])]
-    (validate-builds project)
     (case command "once" (once project builds?)
                   "auto" (auto project builds?)
                   "release" (release project builds?)

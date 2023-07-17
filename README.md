@@ -17,17 +17,17 @@ A Clojure plugin for automatic compilation of [Tornado](https://github.com/JanSu
                       [org.clojars.jansuran03/lein-tornado "0.2.4"]]
             :tornado {:source-paths     ["src/my-app/css"]
                       :output-directory "resources/public/css"
-                      :builds           {:main {:stylesheet my-app.css.core
-                                                :compiler   {:pretty-print? false
-                                                             :output-to     "main.css"}}
-                                         {:foo {:source-paths ["src/my-app/css/foo"]
-                                                :stylesheet   my-app.css.foo.core
-                                                :compiler     {:output-to "foo.css"}}}
-                                         {:common {:source-paths ["src/my-app/common"]
-                                                   :stylesheet   my-app.common.css
-                                                   :compiler     {:output-to     "common.css"
-                                                                  :indent-length 3}}}}
-                      ...)
+                      :builds           {:main   {:stylesheet my-app.css.core
+                                                  :compiler   {:pretty-print? false
+                                                               :output-to     "main.css"}}
+                                         :foo    {:source-paths ["src/my-app/css/foo"]
+                                                  :stylesheet   my-app.css.foo.core
+                                                  :compiler     {:output-to "foo.css"}}
+                                         :common {:source-paths ["src/my-app/common"]
+                                                  :stylesheet   my-app.common.css
+                                                  :compiler     {:output-to     "common.css" 
+                                                                 :indent-length 3}}}}
+            ...)
 ```
 
 The old (deprecated) setup is still working fine:

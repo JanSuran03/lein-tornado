@@ -96,13 +96,12 @@
              (doseq [ns# modified-nss#]
                (require (symbol ns#) :reload))
              (println "Namespaces reloaded.")
-             (doseq [build# ~builds]
-               (let [{stylesheet# :stylesheet
+             (doseq [{stylesheet# :stylesheet
                       id#         :id
-                      flags#      :compiler} build#]
-                 (println "   Compiling build" (name id#) "...")
-                 (compiler/css flags# stylesheet#)
-                 (println "   Successful.")))
+                      flags#      :compiler} ~builds]
+               (println "   Compiling build" (name id#) "...")
+               (compiler/css flags# stylesheet#)
+               (println "   Successful."))
              (println "All builds were successfully recompiled.")
              (catch Exception e#
                (println "Error: " (.getMessage e#)))))

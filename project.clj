@@ -5,5 +5,6 @@
             :url  "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[ns-tracker "0.4.0"]
                  [org.clojars.jansuran03/tornado "0.2.5"]
-                 [me.raynes/fs "1.4.6"]]
+                 [me.raynes/fs "1.4.6"]
+                 [org.clojure/clojure "1.11.1"]]
   :eval-in-leiningen true)

@@ -1,29 +1,34 @@
 (ns leiningen.tornado
-  (:require [me.raynes.fs :as fs]
+  (:refer-clojure :exclude [assert])
+  (:require [clojure.string :as str]
+            [me.raynes.fs :as fs]
             [leiningen.core.main :as lein]
             [clojure.java.io :as io]
             [leiningen.core.project :as project]
             [leiningen.core.eval :refer [eval-in-project]]
             [leiningen.help :as help]))
 
-(defn- error
-  "Pretty prints an exception (no 40 lines of unreadable stacktrace) -
-  prints out the error message and calmly aborts the process."
+(defn- exit
+  "Prints the contents to the console, then exits."
   [& args]
   (apply lein/info args)
   (lein/abort))
+
+(defmacro assert [form msg]
+  `(when-not ~form
+     (error ~msg)))
 
 (defn- validate-builds
   "For each build, validates id, stylesheet and source paths. Throws an exception if some builds are not valid."
   [project builds]
   (doseq [{:keys [id stylesheet source-paths compiler]} builds
           :let [{:keys [output-to]} compiler]]
-    (cond (not ((some-fn keyword? string?) id)) (error "The build id must be a string or a keyword: " id)
-          (and (nil? source-paths) (nil? (:source-paths project))) (error (str "No source paths specified for a build: " (name id) "."
-                                                                               "Please specify global or build-specific source paths."))
-          (nil? stylesheet) (error "No stylesheet specified for a build: " (name id))
-          (not (symbol? stylesheet)) (error "Stylesheet value must be a symbol: " stylesheet " in a build: " (name id))
-          (nil? output-to) (error "No specified output path (:output-to) for a compiled CSS build: " (name id)))))
+    (cond (not ((some-fn keyword? string?) id)) (exit "The build id must be a string or a keyword: " id)
+          (and (nil? source-paths) (nil? (:source-paths project))) (exit (str "No source paths specified for a build: " (name id) "."
+                                                                              "Please specify global or build-specific source paths."))
+          (nil? stylesheet) (exit "No stylesheet specified for a build: " (name id))
+          (not (symbol? stylesheet)) (exit "Stylesheet value must be a symbol: " stylesheet " in a build: " (name id))
+          (nil? output-to) (exit "No specified output path (:output-to) for a compiled CSS build: " (name id)))))
 
 (defn- all-builds
   "Returns a sequence of Tornado builds."
@@ -46,7 +51,7 @@
                              (when (= (name build-id) (name id))
                                build)) all-builds)]
         build
-        (error "Unknown build id: " build-id)))))
+        (exit "Unknown build id: " build-id)))))
 
 (defn- load-namespaces [stylesheets]
   `(require ~@(for [stylesheet stylesheets]
@@ -62,12 +67,18 @@
                           fs/parent)]
     (when-not (fs/exists? output-to-dir)
       (when-not (fs/mkdirs output-to-dir)                   ;; Returns true on success, false on fail
-        (error "Failed creating a directory: " output-to-dir)))))
+        (exit "Failed creating a directory: " output-to-dir)))))
 
 (defn- compile-builds
   "Automatically recompiles modified builds when needed, or once if watch? is not truthy."
   [{:keys [tornado-source-paths]} builds watch?]
-  (let [all-stylesheet-namespaces (mapv #(-> % :stylesheet symbol namespace) builds) ;;initial compilation of all stylesheets
+  (let [stylesheets (map :stylesheet builds)
+        _ (assert (every? qualified-symbol? (map :stylesheet builds))
+                  (str "All stylesheets symbol must be fully qualified unquoted symbols, "
+                       "e.g. my-project.css/stylesheet. Problematic stylesheets: ["
+                       (str/join ", " (filter (complement qualified-symbol?) stylesheets))
+                       "]"))
+        all-stylesheet-namespaces (mapv #(-> % symbol namespace) stylesheets) ;;initial compilation of all stylesheets
         tornado-source-paths (vec tornado-source-paths)]
     `(let [modified-namespaces# (ns-tracker/ns-tracker ~tornado-source-paths)]
        (loop [modified-nss# ~all-stylesheet-namespaces]
@@ -144,6 +155,8 @@
 
 ; TODO: (tornado auto) compresses the build if pretty-print? is set to false only for the first time, after recompilation not anymore for some reason...
 
+(def project-url "https://github.com/JanSuran03/lein-tornado")
+
 (defn tornado
   "A function for evaluation in the terminal:
   \"lein tornado once\" - compiles all stylesheets once
@@ -157,6 +170,6 @@
     (case command "once" (once project builds?)
                   "auto" (auto project builds?)
                   "release" (release project builds?)
-                  (do (lein/info (when command (str "Unknown command: " command))
-                                 (help/subtask-help-for *ns* #'tornado))
-                      (lein/abort)))))
+                  "help" (exit "For documentation, see" project-url)
+                  (exit (when command (str "Unknown command: " command))
+                        (help/subtask-help-for *ns* #'tornado)))))

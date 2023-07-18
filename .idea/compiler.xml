@@ -22,8 +22,5 @@
         <module name="lein-tornado" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="lein-tornado" target="1.5" />
-    </bytecodeTargetLevel>
   </component>
 </project>

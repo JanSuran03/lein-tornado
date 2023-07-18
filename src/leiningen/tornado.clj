@@ -19,21 +19,26 @@
       (lein/info "Exiting lein-tornado..."))
     (lein/abort)))
 
-(defmacro assert [form msg]
+(defmacro assert [form & msg-args]
   `(when-not ~form
-     (exit ~msg)))
+     (exit ~@msg-args)))
 
 (defn- validate-builds
   "For each build, validates id, stylesheet and source paths. Throws an exception if some builds are not valid."
   [project builds]
   (doseq [{:keys [id stylesheet source-paths compiler]} builds
           :let [{:keys [output-to]} compiler]]
-    (cond (not ((some-fn keyword? string?) id)) (exit "The build id must be a string or a keyword: " id)
-          (and (nil? source-paths) (nil? (:source-paths project))) (exit (str "No source paths specified for a build: " (name id) "."
-                                                                              "Please specify global or build-specific source paths."))
-          (nil? stylesheet) (exit "No stylesheet specified for a build: " (name id))
-          (not (symbol? stylesheet)) (exit "Stylesheet value must be a symbol: " stylesheet " in a build: " (name id))
-          (nil? output-to) (exit "No specified output path (:output-to) for a compiled CSS build: " (name id)))))
+    (assert ((some-fn keyword? string?) id)
+            "The build id must be a string or a keyword: " id)
+    (assert (or source-paths (:source-paths project))
+            (str "No source paths specified for a build: " (name id) "."
+                 "Please specify global or build-specific source paths."))
+    (assert stylesheet
+            "No stylesheet specified for a build: " (name id))
+    (assert (symbol? stylesheet)
+            "Stylesheet value must be a symbol: " stylesheet " in a build: " (name id))
+    (assert output-to
+            "No specified output path (:output-to) for a compiled CSS build: " (name id))))
 
 (defn- all-builds
   "Returns a sequence of Tornado builds."
@@ -71,8 +76,8 @@
                           fs/absolute
                           fs/parent)]
     (when-not (fs/exists? output-to-dir)
-      (when-not (fs/mkdirs output-to-dir)                   ;; Returns true on success, false on fail
-        (exit "Failed creating a directory: " output-to-dir)))))
+      (assert (fs/mkdirs output-to-dir)                   ;; Returns true on success, false on fail
+              "Failed creating a directory: " output-to-dir))))
 
 (defn- compile-builds
   "Automatically recompiles modified builds when needed, or once if watch? is not truthy."
@@ -112,8 +117,8 @@
   "Starts the compilation process."
   [{:keys [tornado]
     :as   project} args compilation-type]
-  (when-not tornado
-    (exit "No tornado config specified (:tornado key in project.clj)"))
+  (assert tornado
+          "No tornado config specified (:tornado key in project.clj)")
   (let [{:keys [output-dir output-directory source-paths]} tornado
         builds (if (seq args)
                  (find-builds project args)

@@ -11,12 +11,17 @@
 (defn- exit
   "Prints the contents to the console, then exits."
   [& args]
-  (apply lein/info args)
-  (lein/abort))
+  (let [[print-exit args] (if (= (first args) :no-print-exit)
+                            [false (next args)]
+                            [true args])]
+    (apply lein/info args)
+    (when print-exit
+      (lein/info "Exiting lein-tornado..."))
+    (lein/abort)))
 
 (defmacro assert [form msg]
   `(when-not ~form
-     (error ~msg)))
+     (exit ~msg)))
 
 (defn- validate-builds
   "For each build, validates id, stylesheet and source paths. Throws an exception if some builds are not valid."
@@ -98,15 +103,19 @@
              (println "All builds were successfully recompiled.")
              (catch Exception e#
                (println "Error: " (.getMessage e#)))))
-         (when ~watch? nil
-                       (Thread/sleep 500)
-                       ;; A funciton to return a set of modified namespaces is called, called every 500 millieconds.
-                       (recur (modified-namespaces#)))))))
+         (when ~watch?
+           (Thread/sleep 500)
+           ;; A function to return a set of modified namespaces is called, called every 500 milliseconds.
+           (recur (modified-namespaces#)))))))
 
 (defn- run-compiler
   "Starts the compilation process."
-  [{{:keys [output-dir output-directory source-paths]} :tornado :as project} args compilation-type]
-  (let [builds (if (seq args)
+  [{:keys [tornado]
+    :as   project} args compilation-type]
+  (when-not tornado
+    (exit "No tornado config specified (:tornado key in project.clj)"))
+  (let [{:keys [output-dir output-directory source-paths]} tornado
+        builds (if (seq args)
                  (find-builds project args)
                  (all-builds project))
         output-directory (or output-directory output-dir)
@@ -162,14 +171,15 @@
   \"lein tornado once\" - compiles all stylesheets once
   \"lein tornado auto\" - recompiles all stylesheets to provide hot-code reloading.
   \"lein tornado release\" - compiles and compresses all stylesheets.
+  \"lein tornado help\" - prints help
   \"lein tornado <once/auto/release> & builds - compiles only specific builds."
-  {:help-arglists '([once & builds?] [auto & builds?] [release & builds?])
+  {:help-arglists '([once & builds?] [auto & builds?] [release & builds?] [help])
    :subtasks      [#'once #'auto #'release]}
   [project command & builds?]
   (let [project (project/merge-profiles project [tornado-profile])]
     (case command "once" (once project builds?)
                   "auto" (auto project builds?)
                   "release" (release project builds?)
-                  "help" (exit "For documentation, see" project-url)
+                  "help" (exit :no-print-exit "For documentation, see" project-url)
                   (exit (when command (str "Unknown command: " command))
                         (help/subtask-help-for *ns* #'tornado)))))

@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.2.5
+Added the `help` option.
+
+Added more checks and improved printing error messages/messages in general.
+
 ## 0.2.4
 Added an option to specify the builds as a hash-map with keys as the build ids instead of vectors.
 

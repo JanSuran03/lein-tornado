@@ -1,7 +1,6 @@
 (ns leiningen.tornado
   (:refer-clojure :exclude [assert])
-  (:require [clojure.string :as str]
-            [me.raynes.fs :as fs]
+  (:require [me.raynes.fs :as fs]
             [leiningen.core.main :as lein]
             [clojure.java.io :as io]
             [leiningen.core.project :as project]
@@ -76,7 +75,7 @@
                           fs/absolute
                           fs/parent)]
     (when-not (fs/exists? output-to-dir)
-      (assert (fs/mkdirs output-to-dir)                   ;; Returns true on success, false on fail
+      (assert (fs/mkdirs output-to-dir)                     ;; Returns true on success, false on fail
               "Failed creating a directory: " output-to-dir))))
 
 (defn- compile-builds
@@ -84,10 +83,9 @@
   [{:keys [tornado-source-paths]} builds watch?]
   (let [stylesheets (map :stylesheet builds)
         _ (assert (every? qualified-symbol? (map :stylesheet builds))
-                  (str "All stylesheets symbol must be fully qualified unquoted symbols, "
-                       "e.g. my-project.css/stylesheet. Problematic stylesheets: ["
-                       (str/join ", " (filter (complement qualified-symbol?) stylesheets))
-                       "]"))
+                  "All stylesheets symbol must be fully qualified unquoted symbols,"
+                  "e.g. my-project.css/stylesheet. Problematic stylesheets:"
+                  (filterv (complement qualified-symbol?) stylesheets))
         all-stylesheet-namespaces (mapv #(-> % symbol namespace) stylesheets) ;;initial compilation of all stylesheets
         tornado-source-paths (vec tornado-source-paths)]
     `(let [modified-namespaces# (ns-tracker/ns-tracker ~tornado-source-paths)]
@@ -139,6 +137,10 @@
         modified-project (assoc project :tornado-source-paths build-paths
                                         :tornado-stylesheets stylesheets)
         required-nss (load-namespaces stylesheets)]
+    (assert (every? :source-paths builds)
+            "Builds found without source paths: " (->> builds
+                                                       (filter (complement :source-paths))
+                                                       (mapv :id)))
     (when (seq builds)
       (doseq [build builds] (create-output-dir-if-not-exists build))
       (lein/info "Compiling Tornado...")

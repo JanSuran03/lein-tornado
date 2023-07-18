@@ -8,7 +8,7 @@
             [leiningen.help :as help]))
 
 (defn- exit
-  "Prints the contents to the console, then exits."
+  "Prints the contents to the console, then exits the program."
   [& args]
   (let [[print-exit args] (if (= (first args) :no-print-exit)
                             [false (next args)]
@@ -23,7 +23,7 @@
      (exit ~@msg-args)))
 
 (defn- validate-builds
-  "For each build, validates id, stylesheet and source paths. Throws an exception if some builds are not valid."
+  "For each build, asserts valid id, stylesheet, source paths and output-to."
   [project builds]
   (doseq [{:keys [id stylesheet source-paths compiler]} builds
           :let [{:keys [output-to]} compiler]]
@@ -40,7 +40,7 @@
             "No specified output path (:output-to) for a compiled CSS build: " (name id))))
 
 (defn- all-builds
-  "Returns a sequence of Tornado builds."
+  "Validates all Tornado builds and returns them as a list."
   [project]
   (let [builds (-> project :tornado :builds)
         builds (cond->> builds
@@ -51,8 +51,7 @@
     builds))
 
 (defn- find-builds
-  "For each of the given build ids, if each of the builds exists, returns a complete
-  build map of the build. Otherwise, throws an exception."
+  "For given build ids, validates that all requested builds are present and returns them as a list."
   [project build-ids]
   (let [all-builds (all-builds project)]
     (for [build-id build-ids]
@@ -62,13 +61,14 @@
         build
         (exit "Unknown build id: " build-id)))))
 
-(defn- load-namespaces [stylesheets]
+(defn- load-namespaces
+  "Returns a require form with namespaces that can be evaluated to require them."
+  [stylesheets]
   `(require ~@(for [stylesheet stylesheets]
-                `'~(-> stylesheet namespace symbol))))
+                `(quote ~(-> stylesheet namespace symbol)))))
 
 (defn- create-output-dir-if-not-exists
-  "If the output path directory does not exist, tries to create it. If it does not
-  succeed, throws an exception."
+  "If the output path directory does not exist, tries to create it. Exits the program on failure."
   [{:keys [compiler]}]
   (let [output-to-dir (-> compiler :output-to
                           io/file
@@ -79,7 +79,7 @@
               "Failed creating a directory: " output-to-dir))))
 
 (defn- compile-builds
-  "Automatically recompiles modified builds when needed, or once if watch? is not truthy."
+  "A loop that automatically (re)compiles builds when needed."
   [{:keys [tornado-source-paths]} builds watch?]
   (let [stylesheets (map :stylesheet builds)
         _ (assert (every? qualified-symbol? (map :stylesheet builds))
@@ -112,7 +112,7 @@
            (recur (modified-namespaces#)))))))
 
 (defn- run-compiler
-  "Starts the compilation process."
+  "Prepares the builds and runs the compilation process."
   [{:keys [tornado]
     :as   project} args compilation-type]
   (assert tornado
@@ -141,14 +141,15 @@
             "Builds found without source paths: " (->> builds
                                                        (filter (complement :source-paths))
                                                        (mapv :id)))
-    (when (seq builds)
-      (doseq [build builds] (create-output-dir-if-not-exists build))
-      (lein/info "Compiling Tornado...")
-      (eval-in-project modified-project
-                       `(do ~required-nss
-                            ~(compile-builds modified-project builds watch?))
-                       '(require '[tornado.compiler :as compiler]
-                                 '[ns-tracker.core :as ns-tracker])))))
+    (if (seq builds)
+      (do (doseq [build builds] (create-output-dir-if-not-exists build))
+          (lein/info "Compiling Tornado...")
+          (eval-in-project modified-project
+                           `(do ~required-nss
+                                ~(compile-builds modified-project builds watch?))
+                           '(require '[tornado.compiler :as compiler]
+                                     '[ns-tracker.core :as ns-tracker])))
+      (lein/info "Warning: No builds specified."))))
 
 (defn- once
   "Compiles Tornado stylesheets once. Args are optional specific builds to be compiled."
@@ -156,7 +157,7 @@
   (run-compiler project args :once))
 
 (defn- auto
-  "Compiles Tornado stylesheets once and recompiles them whenever they are modified. Args are optional specific builds to be compiled."
+  "Recompiles Tornado stylesheets whenever they are modified. Args are optional specific builds to be compiled."
   [project args]
   (run-compiler project args :auto))
 
